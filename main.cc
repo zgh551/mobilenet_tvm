@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 
     // the memory space allocate
     //std::vector<float> x_input(gray_image.rows * gray_image.cols);
-    //std::vector<float> y_output(10);
+    std::vector<float> y_output(1001);
         
     // load the mobilenet dynamic lib
     LOG(INFO) << "[mobilenet tvm]:---Load Dynamic Lib---";
@@ -107,6 +107,8 @@ int main(int argc, char *argv[])
     tvm::runtime::PackedFunc load_params = mod.GetFunction("load_params");
     load_params(params_arr);
 
+    for (int t = 0; t < atoi(argv[4]); t++)
+    {
     LOG(INFO) << "[mobilenet tvm]:---Set Input---";
     // get set input data function
     tvm::runtime::PackedFunc set_input = mod.GetFunction("set_input");
@@ -119,15 +121,21 @@ int main(int argc, char *argv[])
     LOG(INFO) << "[mobilenet tvm]:---Run---";
     // get run function
     tvm::runtime::PackedFunc run = mod.GetFunction("run");
+    //getchar();
     double t1 = GetCurTime();
     run();
     double t2 = GetCurTime();
-    LOG(INFO) << "[mobilenet tvm]:---Executor Time:" << t2 - t1 << "[us]";
 
-    LOG(INFO) << "[mobilenet tvm]:---Get Output---";
     // get output data function
     tvm::runtime::PackedFunc get_output = mod.GetFunction("get_output");
     get_output(0, y);
+    TVMArrayCopyToBytes(y, y_output.data(), 1000 * sizeof(float));
+    double t3 = GetCurTime();
+
+    LOG(INFO) << "[mobilenet tvm]:---Get Output---";
+    LOG(INFO) << "[mobilenet tvm]:---Executor Time(run):" << t2 - t1 << "[us]";
+    LOG(INFO) << "[mobilenet tvm]:---Executor Time(get_output):" << t3 - t2 << "[us]";
+    }
     //TVMArrayCopyToBytes(y, y_output.data(), 10 * sizeof(float));
 
     //auto result = static_cast<float *>(y->data);
@@ -136,8 +144,11 @@ int main(int argc, char *argv[])
         LOG(INFO) << y_output[i];
     }*/
 
+    double t4 = GetCurTime();
     TVMArrayFree(x);
     TVMArrayFree(y);
+    double t5 = GetCurTime();
+    LOG(INFO) << "[mobilenet tvm]:---Executor Time(Free):" << t5 - t4 << "[us]";
 
     return 0;
 }
